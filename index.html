@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>⚪️ Black & White Snake (Fruit)</title>
+  <title>🟢 Simple Snake Game</title>
   <style>
     /* -------------------------------------------------
-       Minimalist black‑and‑white design – classic vibe.
+       Minimalist green theme – classic vibe.
        ------------------------------------------------- */
     body {
       display: flex;
@@ -15,17 +15,17 @@
       min-height: 100vh;
       margin: 0;
       font-family: system-ui, -apple-system, sans-serif;
-      background: #000;      /* black background */
-      color: #fff;          /* white text */
+      background: #f7fafc;      /* light background */
+      color: #2d3748;
     }
     h1 {
       margin-top: 1rem;
       font-size: 2rem;
-      color: #fff;
+      color: #2f855a;
     }
     #gameCanvas {
-      border: 2px solid #fff;
-      background: #111;    /* very dark playing field */
+      border: 2px solid #2f855a;
+      background: #fff;
       margin-top: 1rem;
     }
     #info {
@@ -36,42 +36,39 @@
       margin-top: 1rem;
       padding: 0.5rem 1rem;
       font-size: 1rem;
-      background: #444;    /* dark button */
-      color: #fff;
+      background: #48bb78;
+      color: white;
       border: none;
       border-radius: 4px;
       cursor: pointer;
     }
     button:hover {
-      background: #666;
+      background: #38a169;
     }
   </style>
 </head>
 <body>
-  <h1>🐍 Black & White Snake (Fruit)</h1>
+  <h1>🐍 Simple Snake</h1>
   <canvas id="gameCanvas" width="400" height="400"></canvas>
-  <div id="info">Use arrow keys (or WASD) to move. Press <strong>Space</strong> to restart.</div>
-  <button id="startBtn">Start Game</button>
-  <button id="restartBtn" style="display:none;">Restart</button>
-
+  <div id="info">Use the arrow keys (or WASD) to move. Press <strong>Space</strong> to restart.</div>
   <script>
     // -------------------------------------------------
-    // Game configuration – slower movement, fruit drawing
+    // Game configuration – classic green design
     // -------------------------------------------------
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    const CELL_SIZE = 20;                  // each square size (px)
+    const CELL_SIZE = 20;                     // each square size (px)
     const COLS = canvas.width / CELL_SIZE;
     const ROWS = canvas.height / CELL_SIZE;
-    const FPS = 5;                          // slower speed (frames per second)
+    const FPS = 10;                           // normal speed (frames per second)
 
     // -------------------------------------------------
     // Game state
     // -------------------------------------------------
     let snake = [];
     let direction = { x: 1, y: 0 };
-    let food = null;      // fruit position
+    let food = null;
     let timer = null;
     let score = 0;
     let gameOver = false;
@@ -93,31 +90,25 @@
       food = randomCell();
       score = 0;
       gameOver = false;
-
-      // Ensure fruit is not spawned on the snake
+      // Ensure fruit not on snake
       while (snake.some(p => p.x === food.x && p.y === food.y)) {
         food = randomCell();
       }
-
       clearInterval(timer);
       timer = setInterval(gameLoop, 1000 / FPS);
       render();
-      // Show the restart button now that the game is running
-      document.getElementById('restartBtn').style.display = 'inline-block';
-      // Hide the start button – we’re already playing
-      document.getElementById('startBtn').style.display = 'none';
     }
 
     function gameLoop() {
       if (gameOver) return;
 
-      // ---- Compute new head position (wrap around edges) ----
+      // Compute new head position (wrap around edges)
       const newHead = {
         x: (snake[0].x + direction.x + COLS) % COLS,
         y: (snake[0].y + direction.y + ROWS) % ROWS
       };
 
-      // ---- Collision with self? ----
+      // Collision with self?
       if (snake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
         endGame();
         return;
@@ -125,7 +116,7 @@
 
       snake.unshift(newHead); // add new head
 
-      // ---- Fruit (food) consumption? ----
+      // Fruit consumption?
       if (newHead.x === food.x && newHead.y === food.y) {
         score++;
         // relocate fruit, avoid snake body
@@ -140,8 +131,8 @@
     }
 
     function render() {
-      // Clear board (dark field)
-      ctx.fillStyle = '#111';
+      // Clear board (white background)
+      ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Draw fruit – red circle for classic look
@@ -156,14 +147,14 @@
       );
       ctx.fill();
 
-      // Draw snake – white head, slightly dimmer body
+      // Draw snake – green head and body
       snake.forEach((seg, i) => {
-        ctx.fillStyle = i === 0 ? '#fff' : '#ddd';
+        ctx.fillStyle = i === 0 ? '#48bb78' : '#38a169';
         ctx.fillRect(seg.x * CELL_SIZE, seg.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       });
 
       // Score overlay
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = '#2d3748';
       ctx.font = '16px sans-serif';
       ctx.fillText(`Score: ${score}`, 10, canvas.height - 10);
     }
@@ -179,13 +170,10 @@
       ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 10);
       ctx.font = '16px sans-serif';
       ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
-      // Show start button again for a fresh round
-      document.getElementById('startBtn').style.display = 'inline-block';
-      document.getElementById('restartBtn').style.display = 'none';
     }
 
     // -------------------------------------------------
-    // Input handling (arrow keys + WASD)
+    // Input handling – arrow keys + WASD, space to restart
     // -------------------------------------------------
     const keyMap = {
       ArrowUp:    { x: 0, y: -1 },
@@ -197,10 +185,9 @@
       a: { x: -1, y: 0 },
       d: { x: 1, y: 0 }
     };
-
     document.addEventListener('keydown', e => {
-      if (e.key === ' ') { // Space restarts (same as restart button)
-        initGame();
+      if (e.key === ' ') {
+        initGame(); // Space restarts the game
         return;
       }
       const newDir = keyMap[e.key];
@@ -212,13 +199,8 @@
       direction = newDir;
     });
 
-    // Buttons
-    document.getElementById('startBtn').addEventListener('click', initGame);
-    document.getElementById('restartBtn').addEventListener('click', initGame);
-
-    // -------------------------------------------------
-    // No auto‑start – user clicks "Start Game".
-    // -------------------------------------------------
+    // Auto‑start the game when page loads
+    initGame();
   </script>
 </body>
 </html>
