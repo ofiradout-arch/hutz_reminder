@@ -2,79 +2,95 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>🟢 Simple Snake Game</title>
+  <title>🟢 Modern Snake Game</title>
   <style>
     /* -------------------------------------------------
-       Minimalist green theme – classic vibe.
+       Modern, card‑style UI – clean, minimal, responsive.
        ------------------------------------------------- */
     body {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: center;
       min-height: 100vh;
       margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #f7fafc;      /* light background */
-      color: #2d3748;
+      background: #f0f2f5;   /* soft gray background */
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #333;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 1.5rem;
+      width: 440px; /* canvas width (400) + some padding */
+      text-align: center;
     }
     h1 {
-      margin-top: 1rem;
-      font-size: 2rem;
-      color: #2f855a;
+      margin: 0 0 0.5rem;
+      font-size: 1.75rem;
+      color: #2c7a7b; /* teal */
     }
     #gameCanvas {
-      border: 2px solid #2f855a;
+      border: 2px solid #2c7a7b;
       background: #fff;
-      margin-top: 1rem;
+      display: block;
+      margin: 0 auto 0.5rem;
     }
-    #info {
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
+    .info {
+      margin: 0.5rem 0;
+      font-size: 0.95rem;
+      color: #555;
     }
     button {
-      margin-top: 1rem;
+      margin-top: 0.5rem;
       padding: 0.5rem 1rem;
       font-size: 1rem;
-      background: #48bb78;
-      color: white;
+      background: #2c7a7b;
+      color: #fff;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       cursor: pointer;
+      transition: background 0.2s;
     }
     button:hover {
-      background: #38a169;
+      background: #285e61;
     }
   </style>
 </head>
 <body>
-  <h1>🐍 Simple Snake</h1>
-  <canvas id="gameCanvas" width="400" height="400"></canvas>
-  <div id="info">Use the arrow keys (or WASD) to move. Press <strong>Space</strong> to restart.</div>
+  <div class="card">
+    <h1>🐍 Modern Snake</h1>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div class="info" id="info">Arrow keys (or WASD) move. Press <strong>Space</strong> to restart.</div>
+    <button id="startBtn">Start Game</button>
+    <button id="restartBtn" style="display:none;">Restart</button>
+  </div>
+
   <script>
     // -------------------------------------------------
-    // Game configuration – classic green design
+    // Game configuration – slower movement, fruit emojis
     // -------------------------------------------------
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    const CELL_SIZE = 20;                     // each square size (px)
+    const CELL_SIZE = 20;               // each cell in pixels
     const COLS = canvas.width / CELL_SIZE;
     const ROWS = canvas.height / CELL_SIZE;
-    const FPS = 10;                           // normal speed (frames per second)
+    const FPS = 5;                      // slower speed (5 frames per second)
+    const FRUIT_EMOJIS = ['🍎','🍊','🍌','🍓','🍇','🍍'];
 
     // -------------------------------------------------
     // Game state
     // -------------------------------------------------
     let snake = [];
     let direction = { x: 1, y: 0 };
-    let food = null;
+    let fruit = null;    // {x, y, emoji}
     let timer = null;
     let score = 0;
     let gameOver = false;
 
     // -------------------------------------------------
-    // Helper utilities
+    // Helpers
     // -------------------------------------------------
     function randomCell() {
       return {
@@ -82,98 +98,110 @@
         y: Math.floor(Math.random() * ROWS)
       };
     }
+    function spawnFruit() {
+      const pos = randomCell();
+      const emoji = FRUIT_EMOJIS[Math.floor(Math.random() * FRUIT_EMOJIS.length)];
+      return { x: pos.x, y: pos.y, emoji };
+    }
 
     function initGame() {
       // Reset everything
-      snake = [{ x: Math.floor(COLS / 2), y: Math.floor(ROWS / 2) }];
+      snake = [{ x: Math.floor(COLS/2), y: Math.floor(ROWS/2) }];
       direction = { x: 1, y: 0 };
-      food = randomCell();
+      fruit = spawnFruit();
       score = 0;
       gameOver = false;
-      // Ensure fruit not on snake
-      while (snake.some(p => p.x === food.x && p.y === food.y)) {
-        food = randomCell();
+
+      // Avoid fruit on snake at start
+      while (snake.some(p => p.x === fruit.x && p.y === fruit.y)) {
+        fruit = spawnFruit();
       }
+
       clearInterval(timer);
       timer = setInterval(gameLoop, 1000 / FPS);
       render();
+
+      // UI changes
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('restartBtn').style.display = 'inline-block';
     }
 
     function gameLoop() {
       if (gameOver) return;
 
-      // Compute new head position (wrap around edges)
+      // Compute new head (wrap around)
       const newHead = {
         x: (snake[0].x + direction.x + COLS) % COLS,
         y: (snake[0].y + direction.y + ROWS) % ROWS
       };
 
-      // Collision with self?
+      // Self‑collision?
       if (snake.some(seg => seg.x === newHead.x && seg.y === newHead.y)) {
         endGame();
         return;
       }
 
       snake.unshift(newHead); // add new head
-
-      // Fruit consumption?
-      if (newHead.x === food.x && newHead.y === food.y) {
+      let ate = false;
+      if (newHead.x === fruit.x && newHead.y === fruit.y) {
+        ate = true;
         score++;
-        // relocate fruit, avoid snake body
+        // spawn new fruit, ensure it doesn't appear on the snake
         do {
-          food = randomCell();
-        } while (snake.some(p => p.x === food.x && p.y === food.y));
-      } else {
-        snake.pop(); // move without growing
+          fruit = spawnFruit();
+        } while (snake.some(p => p.x === fruit.x && p.y === fruit.y));
       }
+      if (!ate) snake.pop(); // keep length if not eating
 
       render();
     }
 
     function render() {
-      // Clear board (white background)
+      // Clear board (white)
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw fruit – red circle for classic look
-      ctx.fillStyle = '#e53e3e';
-      ctx.beginPath();
-      ctx.arc(
-        food.x * CELL_SIZE + CELL_SIZE / 2,
-        food.y * CELL_SIZE + CELL_SIZE / 2,
-        CELL_SIZE / 2 - 2,
-        0,
-        Math.PI * 2
-      );
-      ctx.fill();
+      // Draw fruit – emoji centered in cell
+      ctx.font = `${CELL_SIZE - 4}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(fruit.emoji, fruit.x * CELL_SIZE + CELL_SIZE/2, fruit.y * CELL_SIZE + CELL_SIZE/2);
 
-      // Draw snake – green head and body
+      // Draw snake – teal head, lighter body
       snake.forEach((seg, i) => {
-        ctx.fillStyle = i === 0 ? '#48bb78' : '#38a169';
+        ctx.fillStyle = i === 0 ? '#2c7a7b' : '#81e6d9'; // head darker, body lighter
         ctx.fillRect(seg.x * CELL_SIZE, seg.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
       });
 
-      // Score overlay
-      ctx.fillStyle = '#2d3748';
+      // Score overlay (below canvas)
+      ctx.fillStyle = '#333';
       ctx.font = '16px sans-serif';
-      ctx.fillText(`Score: ${score}`, 10, canvas.height - 10);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(`Score: ${score}`, 10, canvas.height - 6);
     }
 
     function endGame() {
       gameOver = true;
       clearInterval(timer);
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      // overlay semi‑transparent dark
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#fff';
       ctx.font = '24px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 10);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Game Over', canvas.width/2, canvas.height/2 - 10);
       ctx.font = '16px sans-serif';
-      ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+      ctx.fillText(`Score: ${score}`, canvas.width/2, canvas.height/2 + 20);
+
+      // UI back to start state
+      document.getElementById('startBtn').style.display = 'inline-block';
+      document.getElementById('restartBtn').style.display = 'none';
     }
 
     // -------------------------------------------------
-    // Input handling – arrow keys + WASD, space to restart
+    // Input handling – arrows / WASD, Space to restart
     // -------------------------------------------------
     const keyMap = {
       ArrowUp:    { x: 0, y: -1 },
@@ -186,21 +214,22 @@
       d: { x: 1, y: 0 }
     };
     document.addEventListener('keydown', e => {
-      if (e.key === ' ') {
-        initGame(); // Space restarts the game
+      if (e.key === ' ') { // Space restarts
+        initGame();
         return;
       }
       const newDir = keyMap[e.key];
       if (!newDir) return;
-      // Prevent reversing direction directly (snake would bite itself)
-      if (snake.length > 1 && newDir.x === -direction.x && newDir.y === -direction.y) {
-        return;
-      }
+      // prevent direct reversal
+      if (snake.length > 1 && newDir.x === -direction.x && newDir.y === -direction.y) return;
       direction = newDir;
     });
 
-    // Auto‑start the game when page loads
-    initGame();
+    // Buttons
+    document.getElementById('startBtn').addEventListener('click', initGame);
+    document.getElementById('restartBtn').addEventListener('click', initGame);
+
+    // No auto‑start – user presses Start Game.
   </script>
 </body>
 </html>
