@@ -68,7 +68,7 @@
 
   <script>
     // -------------------------------------------------
-    // Game configuration – slower movement, fruit emojis
+    // Game configuration – slower movement, fruit emojis, real snake head image
     // -------------------------------------------------
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -78,6 +78,10 @@
     const ROWS = canvas.height / CELL_SIZE;
     const FPS = 5;                      // slower speed (5 frames per second)
     const FRUIT_EMOJIS = ['🍎','🍊','🍌','🍓','🍇','🍍'];
+
+    // Load a simple snake‑head SVG as an image (real‑looking head)
+    const headImg = new Image();
+    headImg.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M20,50 Q50,0 80,50 Q50,100 20,50 Z' fill='%232c7a7b'/></svg>";
 
     // -------------------------------------------------
     // Game state
@@ -112,7 +116,7 @@
       score = 0;
       gameOver = false;
 
-      // Avoid fruit on snake at start
+      // Ensure fruit not on snake at the start
       while (snake.some(p => p.x === fruit.x && p.y === fruit.y)) {
         fruit = spawnFruit();
       }
@@ -167,10 +171,20 @@
       ctx.textBaseline = 'middle';
       ctx.fillText(fruit.emoji, fruit.x * CELL_SIZE + CELL_SIZE/2, fruit.y * CELL_SIZE + CELL_SIZE/2);
 
-      // Draw snake – teal head, lighter body
+      // Draw snake – head uses image, body uses teal rectangles
       snake.forEach((seg, i) => {
-        ctx.fillStyle = i === 0 ? '#2c7a7b' : '#81e6d9'; // head darker, body lighter
-        ctx.fillRect(seg.x * CELL_SIZE, seg.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        if (i === 0) {
+          // Draw the head image; if not loaded yet, fall back to a rectangle
+          if (headImg.complete) {
+            ctx.drawImage(headImg, seg.x * CELL_SIZE, seg.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          } else {
+            ctx.fillStyle = '#2c7a7b';
+            ctx.fillRect(seg.x * CELL_SIZE, seg.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          }
+        } else {
+          ctx.fillStyle = '#81e6d9'; // lighter teal for body
+          ctx.fillRect(seg.x * CELL_SIZE, seg.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
       });
 
       // Score overlay (below canvas)
@@ -220,7 +234,7 @@
       }
       const newDir = keyMap[e.key];
       if (!newDir) return;
-      // prevent direct reversal
+      // prevent direct reversal (snake would bite itself)
       if (snake.length > 1 && newDir.x === -direction.x && newDir.y === -direction.y) return;
       direction = newDir;
     });
